@@ -16,9 +16,7 @@
 package org.skife.jdbi.v2.sqlobject.stringtemplate;
 
 import org.skife.jdbi.v2.SQLStatement;
-import org.skife.jdbi.v2.sqlobject.SqlStatementCustomizer;
-import org.skife.jdbi.v2.sqlobject.SqlStatementCustomizerFactory;
-import org.skife.jdbi.v2.sqlobject.SqlStatementCustomizingAnnotation;
+import org.skife.jdbi.v2.sqlobject.*;
 import org.skife.jdbi.v2.tweak.StatementLocator;
 
 import java.lang.annotation.Annotation;
@@ -27,6 +25,7 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 import java.lang.reflect.Method;
+import java.util.concurrent.ConcurrentMap;
 
 @SqlStatementCustomizingAnnotation(UseStringTemplate3StatementLocator.LocatorFactory.class)
 @Retention(RetentionPolicy.RUNTIME)
@@ -37,17 +36,20 @@ public @interface UseStringTemplate3StatementLocator
 
     String value() default DEFAULT_VALUE;
 
-    public static class LocatorFactory implements SqlStatementCustomizerFactory
+    public static class LocatorFactory implements StatefulSqlStatementCustomizerFactory
     {
+        private HandlerState state;
+
         public SqlStatementCustomizer createForType(Annotation annotation, Class sqlObjectType)
         {
             final UseStringTemplate3StatementLocator a = (UseStringTemplate3StatementLocator) annotation;
             final StatementLocator l;
+
             if (DEFAULT_VALUE.equals(a.value())) {
-                l = new StringTemplate3StatementLocator(sqlObjectType, true, true);
+                l = new StringTemplate3StatementLocator(sqlObjectType, true, true, state);
             }
             else {
-                l = new StringTemplate3StatementLocator(a.value(), true, true);
+                l = new StringTemplate3StatementLocator(a.value(), true, true, state);
             }
 
             return new SqlStatementCustomizer()
@@ -71,6 +73,11 @@ public @interface UseStringTemplate3StatementLocator
                                                          Method method, Object arg)
         {
             throw new UnsupportedOperationException("Not defined on parameter");
+        }
+
+        @Override
+        public void setState(HandlerState state) {
+            this.state = state;
         }
     }
 

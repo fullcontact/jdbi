@@ -42,9 +42,9 @@ class BatchHandler extends CustomizingStatementHandler
     private final boolean transactional;
     private final ChunkSizeFunction batchChunkSize;
 
-    public BatchHandler(Class<?> sqlObjectType, ResolvedMethod method)
+    public BatchHandler(Class<?> sqlObjectType, ResolvedMethod method, HandlerState handlerState)
     {
-        super(sqlObjectType, method);
+        super(sqlObjectType, method, handlerState);
         Method raw_method = method.getRawMember();
         SqlBatch anno = raw_method.getAnnotation(SqlBatch.class);
         this.sql = SqlObject.getSql(anno, raw_method);
