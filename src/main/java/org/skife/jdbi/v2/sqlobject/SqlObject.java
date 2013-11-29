@@ -39,7 +39,6 @@ class SqlObject
     private static final Map<Method, Handler>                          mixinHandlers = new HashMap<Method, Handler>();
     private static final ConcurrentMap<Class<?>, Map<Method, Handler>> handlersCache = new ConcurrentHashMap<Class<?>, Map<Method, Handler>>();
     private static final ConcurrentMap<Class<?>, Factory>              factories     = new ConcurrentHashMap<Class<?>, Factory>();
-    private static final HandlerState                                  handlerState  = new HandlerState();
 
     static {
         mixinHandlers.putAll(TransactionalHelper.handlers());
@@ -102,6 +101,8 @@ class SqlObject
         final ResolvedType sql_object_type = typeResolver.resolve(sqlObjectType);
 
         final ResolvedTypeWithMembers d = mr.resolve(sql_object_type, null, null);
+
+        final HandlerState handlerState = new HandlerState();
 
         final Map<Method, Handler> handlers = new HashMap<Method, Handler>();
         for (final ResolvedMethod method : d.getMemberMethods()) {
