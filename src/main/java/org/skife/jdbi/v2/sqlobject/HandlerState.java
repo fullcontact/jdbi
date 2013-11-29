@@ -16,6 +16,7 @@ import java.util.concurrent.ConcurrentMap;
 public class HandlerState {
     private final Map<Class, Object> _state = new HashMap<Class, Object>();
 
+    @SuppressWarnings("unchecked")
     public <StateClass> StateClass getState(Class key, Callable<StateClass> stateCreator) throws Exception {
         StateClass instance;
         synchronized (_state) {
