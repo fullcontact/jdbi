@@ -13,9 +13,9 @@ class UpdateHandler extends CustomizingStatementHandler
     private final String sql;
     private final Returner returner;
 
-    public UpdateHandler(Class<?> sqlObjectType, ResolvedMethod method)
+    public UpdateHandler(Class<?> sqlObjectType, ResolvedMethod method, HandlerState handlerState)
     {
-        super(sqlObjectType, method);
+        super(sqlObjectType, method, handlerState);
         this.sql = SqlObject.getSql(method.getRawMember().getAnnotation(SqlUpdate.class), method.getRawMember());
         if (method.getRawMember().isAnnotationPresent(GetGeneratedKeys.class)) {
 

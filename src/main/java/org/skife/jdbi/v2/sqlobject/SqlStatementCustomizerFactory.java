@@ -2,6 +2,7 @@ package org.skife.jdbi.v2.sqlobject;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
+import java.util.concurrent.ConcurrentMap;
 
 /**
  * Interface used in conjunction with {@link SqlStatementCustomizingAnnotation} to generate

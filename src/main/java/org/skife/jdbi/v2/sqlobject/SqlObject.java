@@ -24,6 +24,7 @@ class SqlObject
     private static final Map<Method, Handler>                          mixinHandlers = new HashMap<Method, Handler>();
     private static final ConcurrentMap<Class<?>, Map<Method, Handler>> handlersCache = new ConcurrentHashMap<Class<?>, Map<Method, Handler>>();
     private static final ConcurrentMap<Class<?>, Factory>              factories     = new ConcurrentHashMap<Class<?>, Factory>();
+    private static final HandlerState                                  handlerState  = new HandlerState();
 
     static {
         mixinHandlers.putAll(TransactionalHelper.handlers());
@@ -92,16 +93,16 @@ class SqlObject
             final Method raw_method = method.getRawMember();
 
             if (raw_method.isAnnotationPresent(SqlQuery.class)) {
-                handlers.put(raw_method, new QueryHandler(sqlObjectType, method, ResultReturnThing.forType(method)));
+                handlers.put(raw_method, new QueryHandler(sqlObjectType, method, ResultReturnThing.forType(method), handlerState));
             }
             else if (raw_method.isAnnotationPresent(SqlUpdate.class)) {
-                handlers.put(raw_method, new UpdateHandler(sqlObjectType, method));
+                handlers.put(raw_method, new UpdateHandler(sqlObjectType, method, handlerState));
             }
             else if (raw_method.isAnnotationPresent(SqlBatch.class)) {
-                handlers.put(raw_method, new BatchHandler(sqlObjectType, method));
+                handlers.put(raw_method, new BatchHandler(sqlObjectType, method, handlerState));
             }
             else if (raw_method.isAnnotationPresent(SqlCall.class)) {
-                handlers.put(raw_method, new CallHandler(sqlObjectType, method));
+                handlers.put(raw_method, new CallHandler(sqlObjectType, method, handlerState));
             }
             else if(raw_method.isAnnotationPresent(CreateSqlObject.class)) {
                 handlers.put(raw_method, new CreateSqlObjectHandler(raw_method.getReturnType()));

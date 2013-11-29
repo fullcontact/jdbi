@@ -9,7 +9,11 @@ import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 abstract class CustomizingStatementHandler implements Handler
 {
@@ -20,7 +24,7 @@ abstract class CustomizingStatementHandler implements Handler
     private final Class<?> sqlObjectType;
     private final Method method;
 
-    CustomizingStatementHandler(Class<?> sqlObjectType, ResolvedMethod method)
+    CustomizingStatementHandler(Class<?> sqlObjectType, ResolvedMethod method, HandlerState handlerState)
     {
         this.sqlObjectType = sqlObjectType;
         this.method = method.getRawMember();
@@ -32,6 +36,10 @@ abstract class CustomizingStatementHandler implements Handler
                 final SqlStatementCustomizerFactory f;
                 try {
                     f = a.value().newInstance();
+
+                    if (f instanceof StatefulSqlStatementCustomizerFactory) {
+                        ((StatefulSqlStatementCustomizerFactory)f).setState(handlerState);
+                    }
                 }
                 catch (Exception e) {
                     throw new IllegalStateException("unable to create sql statement customizer factory", e);
