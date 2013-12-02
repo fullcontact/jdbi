@@ -55,6 +55,7 @@ class SqlObject
         }
         else {
             Enhancer e = new Enhancer();
+            e.setNamingPolicy(JDBINamingPolicy.INSTANCE);
             e.setClassLoader(sqlObjectType.getClassLoader());
 
             List<Class> interfaces = new ArrayList<Class>();
