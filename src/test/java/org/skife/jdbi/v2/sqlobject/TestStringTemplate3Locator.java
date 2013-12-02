@@ -24,6 +24,7 @@ import org.skife.jdbi.v2.Something;
 import org.skife.jdbi.v2.sqlobject.customizers.Define;
 import org.skife.jdbi.v2.sqlobject.customizers.RegisterMapper;
 import org.skife.jdbi.v2.sqlobject.stringtemplate.ExternalizedSqlViaStringTemplate3;
+import org.skife.jdbi.v2.sqlobject.stringtemplate.StringTemplate3StatementLocator;
 import org.skife.jdbi.v2.sqlobject.stringtemplate.UseStringTemplate3StatementLocator;
 import org.skife.jdbi.v2.util.StringMapper;
 
@@ -112,6 +113,8 @@ public class TestStringTemplate3Locator
 
         badass.insert("something", new Something(1, "Ted"));
         badass.insert("something", new Something(2, "Fred"));
+
+        assertThat(badass.findById("something", 2L), equalTo(new Something(2, "Fred")));
     }
 
     @UseStringTemplate3StatementLocator

@@ -55,6 +55,7 @@ class SqlObject
         }
         else {
             Enhancer e = new Enhancer();
+            e.setNamingPolicy(JDBINamingPolicy.INSTANCE);
             e.setClassLoader(sqlObjectType.getClassLoader());
 
             List<Class> interfaces = new ArrayList<Class>();
@@ -102,21 +103,23 @@ class SqlObject
 
         final ResolvedTypeWithMembers d = mr.resolve(sql_object_type, null, null);
 
+        final HandlerState handlerState = new HandlerState();
+
         final Map<Method, Handler> handlers = new HashMap<Method, Handler>();
         for (final ResolvedMethod method : d.getMemberMethods()) {
             final Method raw_method = method.getRawMember();
 
             if (raw_method.isAnnotationPresent(SqlQuery.class)) {
-                handlers.put(raw_method, new QueryHandler(sqlObjectType, method, ResultReturnThing.forType(method)));
+                handlers.put(raw_method, new QueryHandler(sqlObjectType, method, ResultReturnThing.forType(method), handlerState));
             }
             else if (raw_method.isAnnotationPresent(SqlUpdate.class)) {
-                handlers.put(raw_method, new UpdateHandler(sqlObjectType, method));
+                handlers.put(raw_method, new UpdateHandler(sqlObjectType, method, handlerState));
             }
             else if (raw_method.isAnnotationPresent(SqlBatch.class)) {
-                handlers.put(raw_method, new BatchHandler(sqlObjectType, method));
+                handlers.put(raw_method, new BatchHandler(sqlObjectType, method, handlerState));
             }
             else if (raw_method.isAnnotationPresent(SqlCall.class)) {
-                handlers.put(raw_method, new CallHandler(sqlObjectType, method));
+                handlers.put(raw_method, new CallHandler(sqlObjectType, method, handlerState));
             }
             else if(raw_method.isAnnotationPresent(CreateSqlObject.class)) {
                 handlers.put(raw_method, new CreateSqlObjectHandler(raw_method.getReturnType()));
