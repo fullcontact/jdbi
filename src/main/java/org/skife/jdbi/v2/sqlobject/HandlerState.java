@@ -18,7 +18,8 @@ public class HandlerState {
 
     @SuppressWarnings("unchecked")
     public <StateClass> StateClass getState(Class key, Callable<StateClass> stateCreator) throws Exception {
-        StateClass instance;
+        StateClass instance = (StateClass)_state.get(key);
+        if(instance != null) return instance;
         synchronized (_state) {
             if (!_state.containsKey(key)) {
                 instance = stateCreator.call();
