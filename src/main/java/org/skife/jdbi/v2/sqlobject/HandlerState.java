@@ -17,12 +17,12 @@ public class HandlerState {
     private final Map<Class, Object> _state = new HashMap<Class, Object>();
 
     @SuppressWarnings("unchecked")
-    public <StateClass> StateClass getState(Class key, Callable<StateClass> stateCreator) throws Exception {
+    public <StateClass> StateClass getState(Class key, StateCreator<StateClass> stateCreator) {
         StateClass instance = (StateClass)_state.get(key);
         if(instance != null) return instance;
         synchronized (_state) {
             if (!_state.containsKey(key)) {
-                instance = stateCreator.call();
+                instance = stateCreator.create();
                 _state.put(key, instance);
             } else {
                 instance = (StateClass)_state.get(key);
@@ -30,5 +30,9 @@ public class HandlerState {
         }
 
         return instance;
+    }
+
+    public static interface StateCreator<StateClass> {
+        StateClass create();
     }
 }

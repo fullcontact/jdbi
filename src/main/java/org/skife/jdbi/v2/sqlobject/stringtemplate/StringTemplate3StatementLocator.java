@@ -10,6 +10,7 @@ import org.skife.jdbi.v2.tweak.StatementLocator;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
@@ -20,6 +21,7 @@ public class StringTemplate3StatementLocator implements StatementLocator
 {
     private final StringTemplateGroup group;
     private final StringTemplateGroup literals = new StringTemplateGroup("literals", AngleBracketTemplateLexer.class);
+    private final HandlerState state;
 
     private boolean treatLiteralsAsTemplates;
 
@@ -51,6 +53,8 @@ public class StringTemplate3StatementLocator implements StatementLocator
         this.group = findInCacheOrCreateStringTemplateGroup(templateGroupFilePathOnClasspath,
                 allowImplicitTemplateGroup, state);
 
+        this.state = state;
+
     }
 
     /**
@@ -68,17 +72,12 @@ public class StringTemplate3StatementLocator implements StatementLocator
         if (state == null)
             return loadStringTemplateGroup(templateGroupFilePathOnClasspath, allowImplicitTemplateGroup);
 
-        ConcurrentMap<String, StringTemplateGroup> myState = null;
-        try {
-            myState = state.getState(getClass(), new Callable<ConcurrentMap<String, StringTemplateGroup>>() {
-                @Override
-                public ConcurrentMap<String, StringTemplateGroup> call() throws Exception {
-                    return new ConcurrentHashMap<String, StringTemplateGroup>();
-                }
-            });
-        } catch (Exception e) {
-            throw new RuntimeException("just creating a ConcurrentHashMap, so this should never happen.");
-        }
+        ConcurrentMap<String, StringTemplateGroup> myState = state.getState(getClass(), new HandlerState.StateCreator<ConcurrentMap<String,StringTemplateGroup>>() {
+            @Override
+            public ConcurrentMap<String, StringTemplateGroup> create()  {
+                return new ConcurrentHashMap<String, StringTemplateGroup>();
+            }
+        });
 
         StringTemplateGroup result = myState.get(templateGroupFilePathOnClasspath);
         if (result == null) {
@@ -120,15 +119,42 @@ public class StringTemplate3StatementLocator implements StatementLocator
         }
     }
 
+    final static Object templateCacheLock = new Object();
     public String locate(String name, StatementContext ctx) throws Exception
     {
-        if (group.isDefined(name)) {
-            // yeah, found template for it!
-            StringTemplate t = group.lookupTemplate(name).getInstanceOf();
-            for (Map.Entry<String, Object> entry : ctx.getAttributes().entrySet()) {
-                t.setAttribute(entry.getKey(), entry.getValue());
+        Map<String, StringTemplate> templateCache;
+        if (state != null) {
+            templateCache = state.getState(StringTemplate.class, new HandlerState.StateCreator<Map<String, StringTemplate>>() {
+                @Override
+                public Map<String, StringTemplate> create() {
+                    return new HashMap<String, StringTemplate>();
+                }
+            });
+        } else {
+            templateCache = new HashMap<String, StringTemplate>();
+        }
+
+        StringTemplate t;
+        t = templateCache.get(name);
+
+        if (t == null) {
+            if (group.isDefined(name)) {
+                t = group.lookupTemplate(name);
+                if (t != null) {
+                    synchronized (templateCacheLock) {
+                        templateCache.put(name, t);
+                    }
+                }
             }
-            return t.toString();
+        }
+
+        if (t != null && t != NO_TEMPLATE) {
+            // yeah, found template for it!
+            StringTemplate instance = t.getInstanceOf();
+            for (Map.Entry<String, Object> entry : ctx.getAttributes().entrySet()) {
+                instance.setAttribute(entry.getKey(), entry.getValue());
+            }
+            return instance.toString();
         }
         else if (treatLiteralsAsTemplates) {
             // no template in the template group, but we want literals to be templates
@@ -136,17 +162,29 @@ public class StringTemplate3StatementLocator implements StatementLocator
             if (!literals.isDefined(key)) {
                 literals.defineTemplate(key, name);
             }
-            StringTemplate t = literals.lookupTemplate(key);
-            for (Map.Entry<String, Object> entry : ctx.getAttributes().entrySet()) {
-                t.setAttribute(entry.getKey(), entry.getValue());
+            t = literals.lookupTemplate(key);
+
+            synchronized (templateCacheLock) {
+                templateCache.put(name, t);
             }
-            return t.toString();
+
+            StringTemplate instance = t.getInstanceOf();
+            for (Map.Entry<String, Object> entry : ctx.getAttributes().entrySet()) {
+                instance.setAttribute(entry.getKey(), entry.getValue());
+            }
+            return instance.toString();
         }
         else {
+            synchronized (templateCacheLock) {
+                templateCache.put(name, NO_TEMPLATE);
+            }
+
             // no template, no literals as template, just use the literal as sql
             return name;
         }
     }
+
+    private final StringTemplate NO_TEMPLATE = new StringTemplate();
 
     private final static String sep = "/"; // *Not* System.getProperty("file.separator"), which breaks in jars
 
